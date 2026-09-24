@@ -17,6 +17,8 @@ import { installCaustics, updateCaustics } from './scene/caustics.js';
 import { createLightShafts } from './scene/light-shafts.js';
 import { createMarineSnow } from './scene/marine-snow.js';
 import { createBubbles } from './diver/bubbles.js';
+import { createOxygen } from './diver/oxygen.js';
+import { createHud } from './ui/hud.js';
 import { createInput } from './diver/input.js';
 import { createDiver } from './diver/diver-controller.js';
 import { createStartScreen } from './ui/start-screen.js';
@@ -109,6 +111,8 @@ input.onLockError(() => {
   if (state === 'paused') pauseMenu.showResumeHint();
 });
 
+const oxygen = createOxygen();
+const hud = createHud();
 const fps = createFpsCounter(preset.label);
 const capture = createCaptureSignal(options.capture);
 
@@ -131,6 +135,8 @@ renderer.setAnimationLoop((timestamp) => {
   backdrop.update(camera);
   surface.update(time, camera);
   reefTime.value = time;
+  if (state === 'playing') oxygen.update(dt, diver.depth, input.isDown('ShiftLeft') || input.isDown('ShiftRight'));
+  hud.update({ oxygenLevel: oxygen.level, depthMeters: diver.depth, time });
   if (state !== 'paused') {
     seaLife.update(dt, time, camera.position);
     bubbles.update(dt, { breath: diver.breath, camera, renderer, active: state === 'playing' });

@@ -326,3 +326,51 @@ pause now and then to clean up memory (**garbage collection**), which shows up a
 In `src/scene/sun.js`, change the sun direction to `new THREE.Vector3(0.6, 1, 0.3)`, a lower sun off to the side.
 Reload and look at the shafts, the caustics stretching down rock walls, the shadows (on High), and the glare when you look up.
 Every effect follows, because they all read the same number.
+
+---
+
+## Milestone 6: The dive-mask HUD
+
+### What was built
+- **Lens frame and vignette** (`src/ui/mask-frame.js`): the dark rim of a dive mask with a nose pocket at the bottom,
+  a soft inner edge, a faint rim highlight, and a slight red/blue fringe where light bends at the glass edge.
+- **Oxygen gauge** (bottom left): an arc that drains as you breathe. It turns amber below 25% and red below 10%, and
+  pulses "Low air: surface to refill". It refills in about 6 s at the surface and never kills or resets you.
+- **Depth meter** (bottom right): "DEPTH: 12 m" over a 0–25 m ruler with a sliding pointer. It shows true depth, the
+  camera's distance below the surface.
+- A faint reticle at the center of your view.
+
+### Key technique 1: the HUD is web page, not 3D
+Everything here is ordinary HTML and SVG (the web's vector-drawing format) layered over the 3D canvas. The browser
+draws it crisp at any resolution and composites it nearly for free.
+```
+┌──────────── browser window ────────────┐
+│  <canvas>   ← Three.js draws the reef    │
+│  <div #hud> ← HTML/SVG on top: mask,     │
+│               gauges, reticle            │
+│  <div menu> ← pause / start screens      │
+└──────────────────────────────────────────┘
+```
+One performance rule: the HUD only touches the page when a *displayed* value changes (a whole percent or meter).
+Changing text makes the browser recompute the page layout, and there's no reason to do that 60 times a second.
+
+### Key technique 2: an arc gauge from a dashed circle
+SVG can draw a circle's outline as dashes. Set one dash as long as the arc you want and a gap for the rest,
+rotate it so the opening sits at the bottom, and shorten that dash to "drain" the gauge. Two lines of math, no images.
+
+### Key technique 3: real dive physics in the oxygen model
+```
+air used per second = base × (1 + depth / 10) × (1.5 if kicking hard)
+```
+Every 10 m of seawater adds one atmosphere of pressure, and a regulator delivers air at the surrounding pressure,
+so a breath at 10 m uses twice the air of a breath at the surface. A full tank lasts about 8 minutes at 10 m,
+longer in the shallows and shorter at the deep edge. That's why real dive plans are built around depth.
+
+### Stack comparison
+- **Similar effort:** Godot has a UI system (Control nodes, TextureProgressBar for the arc) that's more game-oriented.
+  The web's HTML and CSS are arguably *more* powerful for HUD layout, and familiar from any website.
+- **A web advantage:** SVG and CSS scale perfectly to any screen resolution with zero extra work.
+
+### Try it yourself
+In `src/diver/oxygen.js`, change `FULL_TANK_MINUTES_AT_10M = 8` to `1`. Dive to the deep edge and watch the gauge
+drain, turn amber, then red with the warning, then swim up to the surface and watch it refill.
