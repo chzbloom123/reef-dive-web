@@ -19,6 +19,7 @@ import { createMarineSnow } from './scene/marine-snow.js';
 import { createBubbles } from './diver/bubbles.js';
 import { createOxygen } from './diver/oxygen.js';
 import { createHud } from './ui/hud.js';
+import { createAmbience } from './audio/ambience.js';
 import { createInput } from './diver/input.js';
 import { createDiver } from './diver/diver-controller.js';
 import { createStartScreen } from './ui/start-screen.js';
@@ -78,11 +79,19 @@ const diver = createDiver(camera, input, {
 
 let state = options.capture ? 'capture' : 'start';
 
-const startScreen = createStartScreen({ presetLabel: preset.label, onDive: () => input.lock() });
+const ambience = createAmbience();
+// The dive click also starts the sound: browsers only allow audio after a click.
+const dive = () => {
+  ambience.start();
+  input.lock();
+};
+const startScreen = createStartScreen({ presetLabel: preset.label, onDive: dive });
 const pauseMenu = createPauseMenu({
   presetName,
   sensitivity: settings.sensitivity,
-  onResume: () => input.lock(),
+  soundOn: ambience.enabled,
+  onResume: dive,
+  onSoundChange: (on) => ambience.setEnabled(on),
   onPresetChange(name) {
     // Antialiasing is fixed when the renderer is created, so the simplest honest switch is a reload.
     savePresetName(name);
@@ -105,6 +114,12 @@ input.onLockChange((locked) => {
   } else if (state === 'playing') {
     state = 'paused';
     pauseMenu.show();
+  }
+});
+window.addEventListener('keydown', (event) => {
+  if (event.code === 'KeyM' && !event.repeat) {
+    ambience.setEnabled(!ambience.enabled);
+    pauseMenu.showSound(ambience.enabled);
   }
 });
 input.onLockError(() => {

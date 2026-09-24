@@ -15,20 +15,20 @@ import { createRandom } from './random.js';
 //
 // Instead of writing new materials, we patch this into the existing ones (rock, sand, coral, fish, turtle).
 //
-// Two versions:
-//   High: the cell pattern is computed live per pixel, two layers deep (rich, but ~18 cell checks per pixel).
-//   Low:  the pattern is baked ONCE into a small tiling image at load time; each pixel then just reads
-//         two sliding copies of it and combines them. Two texture reads instead of 18 cell checks,
-//         and it still shimmers because the two copies drift in different directions.
+// The cell pattern is baked ONCE into a small tiling image at load time. Each pixel then reads a few
+// sliding copies of it and combines them: 2 copies on Low, 3 on High. It still shimmers, because the
+// copies drift in different directions. (A first version computed the cells live in the shader for
+// every pixel, which cost High about a third of its frame time on integrated graphics. Baking was a
+// big win, and it honestly looks better.)
 
 export const causticUniforms = {
   uCausticTime: { value: 0 },
   uCausticSun: { value: new THREE.Vector3() }, // sun direction in camera space, updated each frame
-  uCausticMap: { value: null }, // Low only: the baked pattern
+  uCausticMap: { value: null }, // the baked pattern
 };
 
-// Bake a tiling caustic-net image on the CPU: the same "borders between cells" idea as the shader,
-// with the cell grid wrapping around so the image repeats seamlessly.
+// Bake a tiling caustic-net image on the CPU: scatter points in a grid of cells and light up the
+// borders between neighboring cells. The grid wraps around so the image repeats seamlessly.
 function bakeCausticTexture() {
   const SIZE = 256;
   const CELLS = 8;
@@ -73,47 +73,20 @@ function bakeCausticTexture() {
 const causticGlsl = (layers) => /* glsl */ `
 uniform float uCausticTime;
 uniform vec3 uCausticSun;
-${layers === 1 ? 'uniform sampler2D uCausticMap;' : ''}
-
-// Pseudo-random 2D point per grid cell (a "hash without sine", after Dave Hoskins, MIT license).
-vec2 causticHash(vec2 p) {
-  vec3 p3 = fract(vec3(p.xyx) * vec3(0.1031, 0.1030, 0.0973));
-  p3 += dot(p3, p3.yzx + 33.33);
-  return fract((p3.xx + p3.yz) * p3.zy);
-}
-
-// Brightness 0..1: high along the borders between cells of wandering points.
-float causticLayer(vec2 uv, float t) {
-  vec2 cell = floor(uv);
-  vec2 f = fract(uv);
-  float d1 = 8.0;
-  float d2 = 8.0;
-  for (int y = -1; y <= 1; y++) {
-    for (int x = -1; x <= 1; x++) {
-      vec2 g = vec2(float(x), float(y));
-      vec2 h = causticHash(cell + g);
-      vec2 o = 0.5 + 0.42 * sin(t + 6.2831 * h);
-      float d = length(g + o - f);
-      if (d < d1) { d2 = d1; d1 = d; } else if (d < d2) { d2 = d; }
-    }
-  }
-  return 1.0 - smoothstep(0.0, 0.2, d2 - d1);
-}
+uniform sampler2D uCausticMap;
 
 float causticAt(vec3 wp) {
   // Slide the point along the sunlight direction to the plane y = 0.
   vec2 uv = (wp.xz - wp.y * vec2(${(SUN_DIRECTION.x / SUN_DIRECTION.y).toFixed(4)}, ${(SUN_DIRECTION.z / SUN_DIRECTION.y).toFixed(4)})) * 1.25;
-  // Wobble the lookup position so the cell borders bend into wavy lines instead of straight-edged tiles.
+  // Wobble the lookup position so the net's lines bend and ripple.
   uv += 0.22 * sin(uv.yx * 2.7 + uCausticTime * vec2(0.7, 0.9));
-  ${
-    layers > 1
-      ? `float c = causticLayer(uv, uCausticTime * 0.9);
-  c = c * 0.45 + c * causticLayer(uv * 1.37 + 5.7, uCausticTime * 1.15) * 0.9;`
-      : `vec2 tuv = uv / 8.0; // the baked tile holds 8 x 8 cells
+  vec2 tuv = uv / 8.0; // the baked tile holds 8 x 8 cells
   float a = texture2D(uCausticMap, tuv + uCausticTime * vec2(0.011, 0.007)).r;
   float b = texture2D(uCausticMap, tuv * 1.27 + vec2(0.37, 0.61) - uCausticTime * vec2(0.008, 0.012)).r;
-  float c = a * b * 1.3 + max(a, b) * 0.3; // brightest where the two drifting nets cross`
-  }
+  float c = a * b * 1.3 + max(a, b) * 0.3; // brightest where the two drifting nets cross
+  ${layers > 1 ? `// High: a third, finer net drifting another way adds sparkle.
+  float d = texture2D(uCausticMap, tuv * 1.9 + vec2(0.71, 0.13) + uCausticTime * vec2(-0.006, 0.014)).r;
+  c = c * (0.75 + 0.5 * d);` : ''}
   return c;
 }
 `;
@@ -133,7 +106,7 @@ const applyGlsl = /* glsl */ `
 // water and backdrop don't have lighting to add to).
 export function installCaustics(root, preset) {
   const layers = preset.causticLayers;
-  if (layers === 1 && !causticUniforms.uCausticMap.value) causticUniforms.uCausticMap.value = bakeCausticTexture();
+  if (!causticUniforms.uCausticMap.value) causticUniforms.uCausticMap.value = bakeCausticTexture();
   const patched = new Set();
   root.traverse((object) => {
     const material = object.material;

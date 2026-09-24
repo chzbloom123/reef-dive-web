@@ -1,8 +1,8 @@
 import { fillControls } from './controls-list.js';
 
-// Pause menu: resume, graphics preset, mouse sensitivity.
+// Pause menu: resume, graphics preset, sound, mouse sensitivity.
 
-export function createPauseMenu({ presetName, sensitivity, onResume, onPresetChange, onSensitivityChange }) {
+export function createPauseMenu({ presetName, sensitivity, soundOn, onResume, onPresetChange, onSensitivityChange, onSoundChange }) {
   const el = document.getElementById('pause-menu');
   const hint = el.querySelector('#resume-hint');
   fillControls(el);
@@ -15,6 +15,17 @@ export function createPauseMenu({ presetName, sensitivity, onResume, onPresetCha
       if (button.dataset.preset !== presetName) onPresetChange(button.dataset.preset);
     });
   }
+
+  const soundButtons = el.querySelectorAll('[data-sound]');
+  const showSound = (on) => soundButtons.forEach((b) => b.classList.toggle('active', (b.dataset.sound === 'on') === on));
+  showSound(soundOn);
+  soundButtons.forEach((b) =>
+    b.addEventListener('click', () => {
+      const on = b.dataset.sound === 'on';
+      showSound(on);
+      onSoundChange(on);
+    }),
+  );
 
   const slider = el.querySelector('#sensitivity');
   const readout = el.querySelector('#sensitivity-value');
@@ -33,5 +44,6 @@ export function createPauseMenu({ presetName, sensitivity, onResume, onPresetCha
     },
     hide: () => el.classList.add('hidden'),
     showResumeHint: () => hint.classList.remove('hidden'),
+    showSound,
   };
 }

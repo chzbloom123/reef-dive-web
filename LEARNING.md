@@ -374,3 +374,53 @@ longer in the shallows and shorter at the deep edge. That's why real dive plans 
 ### Try it yourself
 In `src/diver/oxygen.js`, change `FULL_TANK_MINUTES_AT_10M = 8` to `1`. Dive to the deep edge and watch the gauge
 drain, turn amber, then red with the warning, then swim up to the surface and watch it refill.
+
+---
+
+## Milestone 7: Presets, performance, and polish
+
+### What was done
+- **Performance detective work** on this PC's weak Intel graphics (at 1080p, High was at 14 fps). Instead of guessing,
+  each suspect was switched off one at a time and the frame rate measured:
+  ```
+  High, overview                       frame time
+  ─────────────────────────────────────────────────
+  everything on                         71 ms (14 fps)
+  shadows off                           61 ms  → shadows cost ~10 ms
+  live caustics → baked caustics        47 ms  → live caustics cost ~24 ms!
+  ```
+  Live caustics were the biggest cost by far, so both presets now use the baked version (High reads a third,
+  finer layer for extra sparkle). Only large shapes (rocks, table and brain coral, the turtle) cast shadows now.
+- **Rock color:** more natural grey-blue stone with scattered algae and coralline patches, instead of uniform green.
+- **Ambient sound** (`src/audio/ambience.js`): a deep swelling underwater rumble plus the crackle of snapping shrimp,
+  all synthesized in code. Toggle with **M** or in the pause menu; the choice is remembered.
+- The whole site is **~155 KB** to download (the budget was 10 MB), because everything is generated in code.
+
+### Key technique: measure, don't guess
+This is the most important performance lesson in real-time graphics, and it maps directly onto troubleshooting
+any plant: isolate one variable at a time and measure. Intuition said "shadows are expensive" (they're a whole
+second rendering pass!), but the measurement said the caustic shader, running on every pixel of every surface, was
+2.5× worse. **Per-pixel work multiplies by the number of pixels** (2 million at 1080p), so a shader that looks small in code can dominate.
+
+### What Low vs High control now
+| | Low | High |
+|---|---|---|
+| Pixel ratio cap / antialiasing | 1.0 / off | 2.0 / on |
+| Coral / seagrass | ~270 / 2,500 | ~540 / 6,000 |
+| Fish | 90 | 260 |
+| Shadows | off (baked contact shading) | on, 2048 map |
+| Coral translucency glow | off | on |
+| Caustic layers | 2 | 3 |
+| Light shafts / specks / bubbles | 28 / 600 / 60 | 56 / 2,500 / 140 |
+| Lighting model | Lambert (cheaper) | Standard (physically based) |
+
+### Stack comparison
+- **Godot has a built-in profiler and monitors** (frame time broken down by render/physics/script), so
+  "what's slow?" is one panel away. On the web you use the browser's performance tools, or, as here, a
+  controlled experiment toggling features.
+- **Sound:** Godot plays audio files through AudioStreamPlayer nodes. Web Audio is a node graph too
+  (source → filter → gain → speakers), so the mental model is the same. Here we synthesized the sound instead of loading files.
+
+### Try it yourself
+Press F3 and note the numbers, then open the pause menu (Esc) and switch presets. On your AMD machine, do Low and High
+both stay smooth? If High holds 60 there too, that's a sign your iGPU is stronger than the one this was tested on.

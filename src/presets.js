@@ -19,7 +19,7 @@ export const PRESETS = {
     particleCount: 600,
     bubbleCount: 60,
     lightShafts: 28,
-    causticLayers: 1, // one moving light net on Low; two crossing nets on High
+    causticLayers: 1, // two sliding copies of the light net on Low; a third, finer one on High
     bloom: false, // post-processing glow
     coralTranslucency: false, // fake light-through-coral shader trick
   },

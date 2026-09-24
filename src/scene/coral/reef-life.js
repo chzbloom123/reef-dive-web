@@ -44,6 +44,7 @@ const SPECIES = {
   brain: {
     varieties: (p) => [0, 1, 2].map((v) => createBrainCoralGeometry(v, p.name === 'high' ? 10 : 6)),
     material: { maze: true },
+    castsShadow: true,
     size: [0.28, 0.75],
     minFacing: -0.05, // brain coral also encrusts steep rock faces, bulging outward
     tilt: 0.85,
@@ -73,6 +74,7 @@ const SPECIES = {
       createTableCoralGeometry('plate', 23),
       createTableCoralGeometry('plate', 24),
     ],
+    castsShadow: true,
     plateVarieties: [2, 3], // these grow only as shelves out of rock walls...
     standingVarieties: [0, 1], // ...and these (on stalks) only on flat tops and sand
     material: {},
@@ -229,7 +231,9 @@ export function createReefLife(preset, rockField) {
         mesh.setMatrixAt(k, inst.matrix);
         mesh.setColorAt(k, inst.color);
       });
-      mesh.castShadow = preset.shadows && species.material.sway === undefined;
+      // Only big, solid shapes cast shadows. Hundreds of small corals would double the cost of the
+      // shadow pass (the scene drawn again from the sun) for shadows too small to notice.
+      mesh.castShadow = preset.shadows && species.castsShadow === true;
       mesh.receiveShadow = preset.shadows;
       mesh.computeBoundingSphere();
       group.add(mesh);

@@ -37,7 +37,7 @@ const LEDGES = [
   [-5.5, 3, 2.0, 1.0, 2.4, 2.8],
 ];
 
-const ROCK_TINTS = ['#77716a', '#6b6862', '#7d7266', '#666b6b'];
+const ROCK_TINTS = ['#7a7670', '#6d6e70', '#7f766c', '#6a7174'];
 
 function makeRock(kind, x, z, sx, sy, sz, yaw, seed, centerY) {
   const scale = new THREE.Vector3(sx, sy, sz);
@@ -104,7 +104,7 @@ function paintRock(rock, geo) {
   const nrm = geo.attributes.normal;
   const colors = new Float32Array(pos.count * 3);
   const base = new THREE.Color(ROCK_TINTS[Math.floor(rock.seed) % ROCK_TINTS.length]);
-  const olive = new THREE.Color('#8b8d5c');
+  const olive = new THREE.Color('#8d8a66');
   const coralline = new THREE.Color('#c47f8a');
   const purple = new THREE.Color('#7b6b96');
   const c = new THREE.Color();
@@ -123,7 +123,8 @@ function paintRock(rock, geo) {
     const speck = fbm(world.x * 9, world.y * 9, world.z * 9, 2);
     c.copy(base).multiplyScalar(1 + speck * 0.35);
 
-    const growth = THREE.MathUtils.smoothstep(up, 0.1, 0.75) * THREE.MathUtils.smoothstep(patch, -0.35, 0.15);
+    // Crust grows in scattered patches on upward faces, leaving plenty of bare grey stone between.
+    const growth = THREE.MathUtils.smoothstep(up, 0.2, 0.8) * THREE.MathUtils.smoothstep(Math.abs(patch), 0.12, 0.4);
     const crust = patch > 0.2 ? coralline : patch < -0.2 ? purple : olive;
     c.lerp(crust, growth * 0.6);
 
@@ -143,7 +144,7 @@ export function createRockField(preset) {
   const material = createMatteMaterial(preset, { vertexColors: true, roughness: 0.95 });
 
   // Smoothness per rock type. Towers outside the reef are only ever seen through haze, so they get less.
-  const detail = preset.name === 'high' ? { pinnacle: 36, distant: 20, boulder: 12 } : { pinnacle: 22, distant: 12, boulder: 10 };
+  const detail = preset.name === 'high' ? { pinnacle: 30, distant: 18, boulder: 12 } : { pinnacle: 22, distant: 12, boulder: 10 };
   for (const rock of rocks) {
     const far = Math.abs(rock.center.x) > 11 || rock.center.z < -20;
     const geo = buildRockGeometry(rock, rock.kind === 'pinnacle' && far ? detail.distant : detail[rock.kind]);
