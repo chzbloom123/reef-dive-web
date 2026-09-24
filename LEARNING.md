@@ -424,3 +424,31 @@ second rendering pass!), but the measurement said the caustic shader, running on
 ### Try it yourself
 Press F3 and note the numbers, then open the pause menu (Esc) and switch presets. On your AMD machine, do Low and High
 both stay smooth? If High holds 60 there too, that's a sign your iGPU is stronger than the one this was tested on.
+
+---
+
+## Milestone 8: Ship
+
+### What was done
+- The final build is live at **https://reef-dive-web.vercel.app/**. Every `git push` redeploys it in about 20 seconds.
+- An automated check of the *live* site in Chrome and Edge: it loads (~2.5 s including generating the whole reef),
+  "Click to dive" captures the mouse, swimming works, the HUD reads depth, and Esc pauses. There were no errors.
+  Firefox can't be driven by the same robot (Playwright needs its own special Firefox build), so that check is by hand.
+- A `README.md` for the repo, including a **twin parity** section with the exact numbers the Godot build should match.
+
+### The whole pipeline, end to end
+```
+you edit src/*.js ──> npm run dev (instant local preview)
+        │
+        ├──> npm run capture (robot Chrome photographs 4 viewpoints × 2 presets)
+        │
+        └──> git commit ──> git push ──> GitHub ──> Vercel builds (npm run build) ──> live URL
+                                                                     │
+                                          visitor's browser downloads ~155 KB ──> generates the reef
+                                          on THEIR machine ──> their GPU draws it (Low or High)
+```
+
+### Looking back: what was surprisingly easy or hard on the web stack
+- **Easy:** shipping (a link!), UI (HTML/CSS is a superb HUD toolkit), and procedural everything (code *is* the asset pipeline).
+- **Hard:** no editor, no profiler panel, no built-in physics, fog volumes, particles, or animation. Every one of
+  those was written by hand. That's more work, but it's also exactly why you now know how each one works.
