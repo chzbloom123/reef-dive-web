@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Reef Dive</title>
+    <meta name="description" content="A calm coral reef dive in your browser." />
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🐠</text></svg>" />
+    <link rel="stylesheet" href="/src/style.css" />
+  </head>
+  <body>
+    <!-- The 3D scene is drawn into this canvas. Everything else is a plain HTML overlay on top. -->
+    <canvas id="scene"></canvas>
+
+    <!-- Shown until the scene has drawn its first frame. -->
+    <div id="loading">Descending…</div>
+
+    <div id="title" class="overlay-title">
+      <h1>hello, reef</h1>
+      <p>Milestone 0 · the shipping pipeline works</p>
+    </div>
+
+    <!-- Vite reads this tag, follows every import from main.js, and bundles it all for the web. -->
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>

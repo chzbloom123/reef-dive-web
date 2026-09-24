@@ -1,0 +1,79 @@
+/* Page-level styles. The canvas fills the window; overlays float above it. */
+html,
+body {
+  margin: 0;
+  height: 100%;
+  overflow: hidden;
+  background: #04303f;
+  color: #e8fbff;
+  font-family: system-ui, 'Segoe UI', Roboto, sans-serif;
+}
+
+#scene {
+  display: block;
+  width: 100vw;
+  height: 100vh;
+}
+
+#loading {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  font-size: 1.1rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  background: #04303f;
+  transition: opacity 0.6s ease;
+}
+
+#loading.done {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.overlay-title {
+  position: fixed;
+  top: 12vh;
+  width: 100%;
+  text-align: center;
+  pointer-events: none;
+  text-shadow: 0 2px 18px rgba(0, 40, 60, 0.7);
+}
+
+.overlay-title h1 {
+  margin: 0;
+  font-size: clamp(2rem, 6vw, 4.5rem);
+  font-weight: 300;
+  letter-spacing: 0.08em;
+}
+
+.overlay-title p {
+  margin: 0.4rem 0 0;
+  opacity: 0.75;
+  letter-spacing: 0.1em;
+}
+
+/* Capture mode hides every overlay so screenshots show only the scene. */
+body.capture .overlay-title,
+body.capture #fps {
+  display: none;
+}
+
+#fps {
+  position: fixed;
+  top: 8px;
+  left: 8px;
+  padding: 4px 8px;
+  font: 12px/1.35 ui-monospace, Consolas, monospace;
+  color: #bff;
+  background: rgba(0, 20, 30, 0.6);
+  border-radius: 4px;
+  pointer-events: none;
+  white-space: pre;
+  z-index: 10;
+}
+
+#fps.hidden {
+  display: none;
+}

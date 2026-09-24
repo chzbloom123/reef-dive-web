@@ -1,0 +1,21 @@
+{
+  "name": "reef-dive-web",
+  "version": "1.0.0",
+  "description": "A calm coral reef diving simulator for the browser (Three.js + Vite).",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "capture": "node tools/capture.js"
+  },
+  "author": "Chaz",
+  "type": "module",
+  "dependencies": {
+    "three": "0.186.0"
+  },
+  "devDependencies": {
+    "playwright": "1.63.0",
+    "vite": "8.3.0"
+  },
+  "private": true
+}
