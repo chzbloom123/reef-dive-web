@@ -113,6 +113,7 @@ export function createReefLife(preset, rockField) {
   const group = new THREE.Group();
   const colliders = []; // spheres the diver can't enter: { center, radius }
   const placed = []; // everything placed so far, to avoid overlaps: { center, radius }
+  const anemones = []; // where the drawn anemones are, so clownfish can find a home
 
   const reefRocks = rockField.rocks.filter(
     (r) => r.center.x > REEF_BOUNDS.minX && r.center.x < REEF_BOUNDS.maxX && r.center.z > REEF_BOUNDS.minZ && r.center.z < REEF_BOUNDS.maxZ,
@@ -214,6 +215,7 @@ export function createReefLife(preset, rockField) {
       if (kept) instances[variety].push({ matrix: matrix.clone(), color: color.clone() });
 
       placed.push({ center: spot.position.clone(), radius: size * 0.5 });
+      if (kept && name === 'anemone') anemones.push(spot.position.clone().addScaledVector(tiltTo, size * 0.25));
       if (kept && species.solid > 0) {
         colliders.push({ center: spot.position.clone().addScaledVector(tiltTo, size * 0.3), radius: size * species.solid * 0.5 });
       }
@@ -239,6 +241,7 @@ export function createReefLife(preset, rockField) {
   return {
     group,
     colliders,
+    anemones,
 
     // Push a sphere (the diver) out of any coral it overlaps.
     collide(position, radius) {

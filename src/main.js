@@ -12,6 +12,7 @@ import { createSeabed } from './scene/seabed.js';
 import { createWaterSurface } from './scene/water-surface.js';
 import { createReefLife } from './scene/coral/reef-life.js';
 import { reefTime } from './scene/coral/coral-material.js';
+import { createSeaLife } from './creatures/sea-life.js';
 import { createInput } from './diver/input.js';
 import { createDiver } from './diver/diver-controller.js';
 import { createStartScreen } from './ui/start-screen.js';
@@ -50,7 +51,8 @@ const surface = createWaterSurface(preset.viewDistance);
 const rockField = createRockField(preset);
 const seabed = createSeabed(preset, rockField, preset.name === 'high' ? renderer.capabilities.getMaxAnisotropy() : 1);
 const reefLife = createReefLife(preset, rockField);
-scene.add(backdrop.mesh, surface.mesh, createWaterLights(preset), rockField.group, seabed, reefLife.group);
+const seaLife = createSeaLife(preset, { rockField, reefLife });
+scene.add(backdrop.mesh, surface.mesh, createWaterLights(preset), rockField.group, seabed, reefLife.group, seaLife.group);
 
 applyViewpoint(camera, options.customCamera ?? options.viewpoint ?? 'vp_overview');
 
@@ -106,15 +108,19 @@ let firstFrame = true;
 // setAnimationLoop calls this once per screen refresh (usually 60 times a second).
 renderer.setAnimationLoop((timestamp) => {
   timer.update(timestamp);
-  const dt = Math.min(timer.getDelta(), 0.1); // clamp so a stalled tab doesn't cause a huge jump
+  // Clamp so a stalled tab doesn't cause a huge jump. The very first frame's timestamp can be a hair
+  // earlier than the moment the timer started, giving a tiny negative time, hence the max(0, ...).
+  const dt = THREE.MathUtils.clamp(timer.getDelta(), 0, 0.1);
+  const time = Math.max(0, timer.getElapsed());
 
   // On the start screen the diver drifts gently behind the menu; paused freezes everything.
   if (state === 'playing' || state === 'start') {
     diver.update(dt, { active: state === 'playing', sensitivity: settings.sensitivity });
   }
   backdrop.update(camera);
-  surface.update(timer.getElapsed(), camera);
-  reefTime.value = timer.getElapsed();
+  surface.update(time, camera);
+  reefTime.value = time;
+  if (state !== 'paused') seaLife.update(dt, time, camera.position);
   renderer.render(scene, camera);
 
   fps.setInfo(`depth ${diver.depth.toFixed(1)} m  ${diver.speed.toFixed(1)} m/s`);

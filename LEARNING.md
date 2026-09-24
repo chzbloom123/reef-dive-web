@@ -216,3 +216,60 @@ their own color ("rim light"). It's one line of shader math instead of real ligh
 In `src/scene/coral/reef-life.js`, change `branching: 260` in `BASE_COUNTS` to `branching: 600` and reload.
 Watch the F3 counter: frame rate barely moves, because it's still one draw call per variety, just longer lists.
 Then in `coral-material.js`, change `field * 15.0` to `field * 6.0` for fat, lazy brain-coral grooves.
+
+---
+
+## Milestone 4: Fish and the sea turtle
+
+### What was built
+- **Four fish species** (`src/creatures/`): blue-green chromis in big schools, yellow tangs, blue tangs (blue with a black
+  swoosh and yellow tail), and clownfish that each stay by their own anemone. 90 fish on Low, 260 on High.
+- **A green sea turtle** cruising a 61 m loop down the reef's central channel and back, about 2.5 minutes per lap.
+- Fish **scatter when you swim close** (within 2.5 m) and steer around rocks.
+
+### Key technique 1: boids, where complex behavior emerges from simple rules
+No fish knows the school's shape. Each one looks only at nearby schoolmates and applies three rules:
+```
+separation: too close to a neighbor?   → push away
+alignment:  neighbors heading north?   → turn north too
+cohesion:   neighbors over there?      → drift that way
+```
+Add "stay near home", "avoid rocks, sand, surface", and "flee the diver", and the result swirls, splits around
+obstacles, and regroups like a real school. It's a nice parallel to systems thinking: global order from local
+rules, with no central controller.
+
+### Key technique 2: the wiggle is a traveling wave, done in the vertex shader
+Fish have no skeletons here. The vertex shader bends each fish sideways by
+```
+sideways = sin(phase − 5 × z) × amplitude × (tiny at the head … large at the tail)
+```
+Because the sine depends on position along the body (z), the bend *travels* from head to tail: that's what
+makes it read as swimming rather than wagging. The CPU only advances `phase` per fish each frame, faster when the
+fish swims harder.
+
+### Key technique 3: one draw call per species, updated every frame
+Each species is one InstancedMesh. Every frame the CPU simulates the flock, then rewrites all the instance
+matrices (position, facing, size) and swim phases, a few kilobytes sent to the GPU. 260 fish = 4 draw calls.
+
+### Key technique 4: the turtle's path is a spline
+A **Catmull-Rom spline** is a smooth curve through a list of points. We give it nine waypoints through open water,
+and the turtle moves along it at constant speed, faces along it, and banks into its turns. A small test script
+sampled 400 points along the curve to confirm it stays about 1 m clear of rock. The first version didn't, and
+would have swum through a pinnacle.
+
+### A bug worth knowing about
+The first frame's browser timestamp can be a hair *earlier* than when our timer started, so "elapsed time" was
+very slightly negative, and the turtle's spline lookup crashed on a negative position. The fix was clamping
+time to ≥ 0. Real-time code is full of these edge cases at startup.
+
+### Stack comparison
+- **Easier in Godot:** the turtle. You'd import a rigged, animated model and play its "swim" animation. Here it's
+  built from shapes, and the flippers are rotated by code.
+- **About the same:** boids. Godot has no built-in flocking either. You'd write the same rules in GDScript
+  (slower) or C#. For thousands of fish, both stacks would move this math to the GPU.
+- **Godot equivalent of instancing:** `MultiMeshInstance3D`, updating `multimesh.set_instance_transform()` each frame.
+
+### Try it yourself
+In `src/creatures/fish-species.js`, find `chromis` and change `alignment: 1.6` to `alignment: 0` and reload.
+The school turns into a disorganized swarm: they still cluster (cohesion) but no longer swim together. Then try
+`cohesion: 0` with alignment back at 1.6: they swim in parallel but slowly drift apart.

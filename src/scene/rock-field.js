@@ -202,6 +202,22 @@ export function createRockField(preset) {
       return pushed;
     },
 
+    // Steering for swimmers: adds a push away from any rock closer than 'range' meters, stronger the
+    // closer it is. The push points away from the rock's center, which is rough but cheap enough to
+    // ask for hundreds of fish every frame.
+    addRepulsion(point, range, out) {
+      for (const rock of rocks) {
+        const reach = rock.reach + range;
+        if (point.distanceToSquared(rock.center) > reach * reach) continue;
+        const d = rockDistance(rock, point);
+        if (d >= range) continue;
+        probe.copy(point).sub(rock.center);
+        probe.y *= 0.3; // mostly sideways: fish go around towers, not over them
+        out.addScaledVector(probe.normalize(), (range - Math.max(d, 0)) / range);
+      }
+      return out;
+    },
+
     // A point on a rock's surface in a given direction from its center (in the rock's own space),
     // plus which way the surface faces there. Used to grow coral on rocks.
     sampleSurface(rock, dir, outPosition, outNormal) {
