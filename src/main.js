@@ -7,7 +7,9 @@ import { createRenderer, handleResize } from './scene/renderer.js';
 import { applyViewpoint } from './scene/viewpoints.js';
 import { createWaterBackdrop, createWaterLights } from './scene/water-optics.js';
 import { groundHeightAt } from './scene/terrain-height.js';
-import { buildTestTank } from './scene/test-tank.js';
+import { createRockField } from './scene/rock-field.js';
+import { createSeabed } from './scene/seabed.js';
+import { createWaterSurface } from './scene/water-surface.js';
 import { createInput } from './diver/input.js';
 import { createDiver } from './diver/diver-controller.js';
 import { createStartScreen } from './ui/start-screen.js';
@@ -42,13 +44,18 @@ handleResize(renderer, camera);
 // The color and distances here are unused; our water shader has its own physics.
 scene.fog = new THREE.Fog(0x000000, 1, 2);
 const backdrop = createWaterBackdrop(preset.viewDistance * 0.9);
-scene.add(backdrop.mesh, createWaterLights());
-buildTestTank(scene);
+const surface = createWaterSurface(preset.viewDistance);
+const rockField = createRockField(preset);
+const seabed = createSeabed(preset, rockField, preset.name === 'high' ? renderer.capabilities.getMaxAnisotropy() : 1);
+scene.add(backdrop.mesh, surface.mesh, createWaterLights(preset), rockField.group, seabed);
 
-applyViewpoint(camera, options.viewpoint ?? 'vp_overview');
+applyViewpoint(camera, options.customCamera ?? options.viewpoint ?? 'vp_overview');
 
 const input = createInput(canvas);
-const diver = createDiver(camera, input, { groundHeightAt });
+const diver = createDiver(camera, input, {
+  groundHeightAt,
+  collide: (position, radius) => rockField.collide(position, radius),
+});
 
 let state = options.capture ? 'capture' : 'start';
 
@@ -102,6 +109,7 @@ renderer.setAnimationLoop((timestamp) => {
     diver.update(dt, { active: state === 'playing', sensitivity: settings.sensitivity });
   }
   backdrop.update(camera);
+  surface.update(timer.getElapsed(), camera);
   renderer.render(scene, camera);
 
   fps.setInfo(`depth ${diver.depth.toFixed(1)} m  ${diver.speed.toFixed(1)} m/s`);

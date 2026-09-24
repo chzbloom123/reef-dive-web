@@ -44,11 +44,29 @@ export function createWaterBackdrop(radius) {
 
 // Light that matches the water: a hemisphere light (bright from above, dim blue-green from below)
 // for soft all-around light, plus a directional "sun" for shading and highlights.
-export function createWaterLights() {
+export function createWaterLights(preset) {
   const group = new THREE.Group();
-  group.add(new THREE.HemisphereLight('#c4f2ff', '#1c4d58', 1.5));
-  const sun = new THREE.DirectionalLight('#fff3d6', 2.4);
-  sun.position.copy(SUN_DIRECTION).multiplyScalar(30);
-  group.add(sun);
+  group.add(new THREE.HemisphereLight('#d2f1ff', '#4d6a5f', 1.4));
+  const sun = new THREE.DirectionalLight('#fff1d2', 3.0);
+  sun.position.copy(SUN_DIRECTION).multiplyScalar(40);
+  group.add(sun, sun.target);
+
+  if (preset.shadows) {
+    // Shadows (High only): the renderer first draws the scene as seen from the sun into a depth
+    // image (the shadow map), then asks "is this pixel hidden from the sun?" when drawing normally.
+    // That's a whole extra pass over the scene, which is why Low skips it.
+    sun.castShadow = true;
+    sun.shadow.mapSize.set(preset.shadowMapSize, preset.shadowMapSize);
+    const cam = sun.shadow.camera;
+    cam.left = -26;
+    cam.right = 26;
+    cam.top = 30;
+    cam.bottom = -30;
+    cam.near = 1;
+    cam.far = 90;
+    sun.shadow.bias = -0.0005;
+    sun.shadow.normalBias = 0.04;
+    sun.shadow.radius = 3;
+  }
   return group;
 }

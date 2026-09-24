@@ -20,7 +20,7 @@ export function createRenderer(canvas, preset) {
   renderer.outputColorSpace = THREE.SRGBColorSpace;
 
   renderer.shadowMap.enabled = preset.shadows;
-  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  renderer.shadowMap.type = THREE.PCFShadowMap; // filtered (soft-edged) shadows; softness comes from shadow.radius
 
   return renderer;
 }

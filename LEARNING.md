@@ -110,3 +110,57 @@ and yellow looks green. That's real: divers lose red first, which is why underwa
 ### Try it yourself
 In `src/diver/diver-controller.js`, change `drag: 1.5` to `drag: 0.5`, save, and swim with `npm run dev`. You'll
 glide like you're on ice. Then try `drag: 4` for a thick, syrupy feel. Top speed changes too, because it's push ÷ drag.
+
+---
+
+## Milestone 2: The ground, rocks, sunlight, and the surface from below
+
+### What was built
+- **Seabed** (`terrain-height.js`, `seabed.js`, `sand-textures.js`): a sloping sandy floor from ~8 m at the shallow end
+  to 18 m at the deep edge, then falling away into the haze. The sand has rippled texture and darkens near rocks.
+- **Rocks** (`rock-shapes.js`, `rock-field.js`): six big pinnacles framing a sandy channel, low ledges, scattered
+  boulders, and distant towers you only see as silhouettes. Algae and pink coralline crust grow on their upward faces.
+- **Collision**: you can't swim through rock; you slide along it.
+- **Sunlight**: a sun plus soft sky light. High adds real shadows.
+- **The surface from below** (`water-surface.js`): moving waves, Snell's window, and sun glare.
+
+### Key technique 1: noise, the building block of procedural worlds
+**Noise** is a smooth random field: nearby inputs give nearby outputs. Layer a few copies at doubling detail
+("fractal noise") and you get natural-looking shapes. Almost everything here is noise plus a formula:
+```
+sand height   = slope profile + noise(x, z)
+rock surface  = sphere radius × (1 + noise(direction) + ledge bands)
+algae patches = noise(position) where the rock faces upward
+sand ripples  = sin(wave + noise), baked into a tiny tiling texture
+```
+Change a seed number and you get a whole new reef for free, with nothing extra to download.
+
+### Key technique 2: one shape function for sight and touch
+Each rock is defined by a *function*: "for any direction from my center, how far out is my surface?" The mesh is
+built by pushing sphere points out to that distance, and collision asks the same function whether you're inside.
+To push you out, it samples the function a few centimeters around you to find the surface's true outward
+direction (its **normal**). An early version pushed straight away from the rock's *center* instead, and the tests
+caught a bug: pressing into a tall pinnacle slowly ratcheted you up its side.
+
+### Key technique 3: Snell's window
+Light bends when it crosses from air into water. Looking up from below, the entire sky is squeezed into a bright
+circle overhead, about 97° wide. Past its edge the surface acts as a mirror and reflects the dark water below
+(**total internal reflection**). The surface shader does this bending calculation for every pixel, using GLSL's
+built-in `refract()`. Wave slopes wobble the window's edge, which gives the bright, broken-up look of real surface light.
+
+### Key technique 4: bake it once, not every frame
+Contact shadows around rock bases, algae placement, and rock shading are all computed **once, at load time**,
+and stored as per-vertex colors. The graphics chip then just paints them, with no cost per frame. The same trick
+cut load time from about 3.5 s to under 1 s: every rock starts from the same sphere, so we build that sphere once and copy it.
+
+### Stack comparison
+- **Harder here:** Godot has a terrain editor, a physics engine with collision shapes, and a shadow toggle in
+  the inspector. Here we wrote the terrain function, the collision math, and the shadow setup ourselves.
+- **Easier here (sort of):** since everything is code, a procedural reef is natural. In Godot you'd usually sculpt
+  or import meshes, then write a script to scatter them.
+- **Same:** Godot's water would also need a custom shader for Snell's window. Neither engine does it out of the box.
+
+### Try it yourself
+In `src/scene/rock-field.js`, change `createRandom(5)` to `createRandom(6)` and reload. All the boulders and
+distant towers move to new random spots (the six main pinnacles are hand-placed, so they stay put). Then in
+`rock-shapes.js`, change the `0.3` in `1 + 0.3 * fbm(` to `0.6` for wilder, lumpier rocks.

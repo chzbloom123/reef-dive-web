@@ -4,20 +4,19 @@
 //   - 1 unit = 1 meter, Y points up.
 //   - The water surface is at y = 0, so depth = -y.
 //   - The reef is about a basketball court: x from -7.5 to 7.5, z from -14 to 14.
-//     The seabed is ~6 m deep at the shallow end (z = +14) and ~18 m at the deep edge (z = -14),
-//     where it drops away into the haze (see terrain-height.js).
+//     The seabed is ~8 m deep at the shallow end (z = +14) and ~18 m at the deep edge (z = -14),
+//     where it drops away into the haze (see terrain-height.js). Rock pinnacles rise to ~3.5 m.
 //
 // This file is plain data (no Three.js import) so the Node capture script can read it too.
-// Positions are provisional until the seabed exists (Milestone 2).
 
 export const VIEWPOINTS = {
   vp_overview: {
-    position: [0, -5, 16],
-    target: [0, -9, -6],
+    position: [0, -6, 17],
+    target: [0, -9.5, -6],
   },
   vp_coral_closeup: {
-    position: [2, -8, 4],
-    target: [3.5, -9.3, 1.5],
+    position: [3.0, -9.2, 3.6],
+    target: [5, -10.4, 0.5],
   },
   vp_looking_up: {
     position: [0, -9, -2],
@@ -31,8 +30,9 @@ export const VIEWPOINTS = {
 
 export const VIEWPOINT_NAMES = Object.keys(VIEWPOINTS);
 
-export function applyViewpoint(camera, name) {
-  const vp = VIEWPOINTS[name];
+// Accepts a viewpoint name, or a { position, target } object.
+export function applyViewpoint(camera, nameOrView) {
+  const vp = typeof nameOrView === 'string' ? VIEWPOINTS[nameOrView] : nameOrView;
   if (!vp) return false;
   camera.position.set(...vp.position);
   camera.lookAt(...vp.target);

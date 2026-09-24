@@ -3,6 +3,7 @@
 //   npm run capture                                  all viewpoints, both presets
 //   npm run capture -- --vp=vp_overview              one viewpoint
 //   npm run capture -- --preset=low --no-build       reuse the last build
+//   npm run capture -- --cam=0,-5,10,0,-10,0         a one-off camera (x,y,z of eye, then of target)
 //
 //   build (dist/) ─> local preview server ─> Chrome opens ?vp=…&preset=…&capture=1
 //        ─> page settles and sets window.__reefReady ─> screenshot ─> screenshots/<vp>_<preset>_<time>.png
@@ -28,7 +29,8 @@ function readArgs() {
     }),
   );
   return {
-    viewpoints: args.vp ? String(args.vp).split(',') : VIEWPOINT_NAMES,
+    viewpoints: args.cam ? ['cam'] : args.vp ? String(args.vp).split(',') : VIEWPOINT_NAMES,
+    cam: args.cam ? String(args.cam) : null,
     presets: args.preset ? String(args.preset).split(',') : ['low', 'high'],
     build: !args['no-build'],
   };
@@ -41,7 +43,7 @@ function timestamp() {
 }
 
 async function main() {
-  const { viewpoints, presets, build: shouldBuild } = readArgs();
+  const { viewpoints, presets, cam, build: shouldBuild } = readArgs();
   await mkdir(outDir, { recursive: true });
 
   if (shouldBuild) {
@@ -68,7 +70,8 @@ async function main() {
         });
         page.on('pageerror', (err) => console.log(`  [page error] ${err.message}`));
 
-        await page.goto(`${baseUrl}?vp=${vp}&preset=${presetName}&capture=1`);
+        const view = cam ? `cam=${cam}` : `vp=${vp}`;
+        await page.goto(`${baseUrl}?${view}&preset=${presetName}&capture=1`);
         await page.waitForFunction(() => window.__reefReady === true, null, { timeout: 30000 });
 
         if (saved.length === 0) {

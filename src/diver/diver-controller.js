@@ -21,12 +21,13 @@ const TUNING = {
   breathPeriod: 5.5, // seconds per breath; lungs make divers rise a little on the inhale
   surfaceY: -0.3, // eyes stop just under the surface; you can reach it but not leave the water
   seabedClearance: 0.6, // meters between eyes and sand (your body is under you)
+  bodyRadius: 0.5, // how close your eyes can get to rock
   areaHalfWidth: 14, // soft invisible walls keep you near the reef...
   areaHalfLength: 26,
   wallPush: 1.5, // ...by pushing back gently instead of stopping you dead
 };
 
-export function createDiver(camera, input, { groundHeightAt }) {
+export function createDiver(camera, input, { groundHeightAt, collide }) {
   const position = camera.position.clone();
   const velocity = new THREE.Vector3();
 
@@ -42,6 +43,8 @@ export function createDiver(camera, input, { groundHeightAt }) {
   const forward = new THREE.Vector3();
   const right = new THREE.Vector3();
   const push = new THREE.Vector3();
+  const beforeCollision = new THREE.Vector3();
+  const bounce = new THREE.Vector3();
 
   function update(dt, { active, sensitivity }) {
     time += dt;
@@ -97,6 +100,14 @@ export function createDiver(camera, input, { groundHeightAt }) {
     if (position.y < floor) {
       position.y = floor;
       velocity.y = Math.max(velocity.y, 0);
+    }
+    // Rocks: push the diver back out to the surface, then cancel the part of the velocity that
+    // points into the rock, so you slide along it instead of sticking or bouncing.
+    beforeCollision.copy(position);
+    if (collide(position, TUNING.bodyRadius)) {
+      bounce.subVectors(position, beforeCollision).normalize();
+      const into = velocity.dot(bounce);
+      if (into < 0) velocity.addScaledVector(bounce, -into);
     }
     softWall(position.x, TUNING.areaHalfWidth, (v) => (velocity.x += v * dt));
     softWall(position.z, TUNING.areaHalfLength, (v) => (velocity.z += v * dt));
