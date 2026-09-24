@@ -1,10 +1,11 @@
 import * as THREE from 'three';
 import { waterColorGlsl } from '../shaders/water-color.glsl.js';
+import { SUN_DIRECTION } from './sun.js';
 
 // The open water you see where there's nothing in the way: a huge ball around the camera,
 // painted from the inside with the same water-color function the fog uses.
 
-export const SUN_DIRECTION = new THREE.Vector3(0.25, 1, 0.35).normalize();
+export { SUN_DIRECTION };
 
 export function createWaterBackdrop(radius) {
   const material = new THREE.ShaderMaterial({

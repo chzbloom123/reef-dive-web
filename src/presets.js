@@ -17,6 +17,9 @@ export const PRESETS = {
     seagrassCount: 2500,
     fishCount: 90,
     particleCount: 600,
+    bubbleCount: 60,
+    lightShafts: 28,
+    causticLayers: 1, // one moving light net on Low; two crossing nets on High
     bloom: false, // post-processing glow
     coralTranslucency: false, // fake light-through-coral shader trick
   },
@@ -32,6 +35,9 @@ export const PRESETS = {
     seagrassCount: 6000,
     fishCount: 260,
     particleCount: 2500,
+    bubbleCount: 140,
+    lightShafts: 56,
+    causticLayers: 2,
     bloom: true,
     coralTranslucency: true,
   },

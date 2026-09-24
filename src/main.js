@@ -13,6 +13,10 @@ import { createWaterSurface } from './scene/water-surface.js';
 import { createReefLife } from './scene/coral/reef-life.js';
 import { reefTime } from './scene/coral/coral-material.js';
 import { createSeaLife } from './creatures/sea-life.js';
+import { installCaustics, updateCaustics } from './scene/caustics.js';
+import { createLightShafts } from './scene/light-shafts.js';
+import { createMarineSnow } from './scene/marine-snow.js';
+import { createBubbles } from './diver/bubbles.js';
 import { createInput } from './diver/input.js';
 import { createDiver } from './diver/diver-controller.js';
 import { createStartScreen } from './ui/start-screen.js';
@@ -53,6 +57,13 @@ const seabed = createSeabed(preset, rockField, preset.name === 'high' ? renderer
 const reefLife = createReefLife(preset, rockField);
 const seaLife = createSeaLife(preset, { rockField, reefLife });
 scene.add(backdrop.mesh, surface.mesh, createWaterLights(preset), rockField.group, seabed, reefLife.group, seaLife.group);
+
+// Atmosphere: caustic light on every lit surface, light shafts, drifting specks, and your bubbles.
+installCaustics(scene, preset);
+const shafts = createLightShafts(preset.lightShafts);
+const snow = createMarineSnow(preset.particleCount);
+const bubbles = createBubbles(preset.bubbleCount);
+scene.add(shafts.mesh, snow.mesh, bubbles.mesh);
 
 applyViewpoint(camera, options.customCamera ?? options.viewpoint ?? 'vp_overview');
 
@@ -120,7 +131,13 @@ renderer.setAnimationLoop((timestamp) => {
   backdrop.update(camera);
   surface.update(time, camera);
   reefTime.value = time;
-  if (state !== 'paused') seaLife.update(dt, time, camera.position);
+  if (state !== 'paused') {
+    seaLife.update(dt, time, camera.position);
+    bubbles.update(dt, { breath: diver.breath, camera, renderer, active: state === 'playing' });
+  }
+  updateCaustics(time, camera);
+  shafts.update(time);
+  snow.update(time, renderer, camera);
   renderer.render(scene, camera);
 
   fps.setInfo(`depth ${diver.depth.toFixed(1)} m  ${diver.speed.toFixed(1)} m/s`);

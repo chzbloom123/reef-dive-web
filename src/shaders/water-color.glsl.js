@@ -5,9 +5,11 @@
 // These colors are applied at the very end of each pixel's shader, after tone mapping, so they
 // are ordinary screen colors (0 = black, 1 = full brightness).
 
+import { SUN_GLSL } from '../scene/sun.js';
+
 export const waterColorGlsl = /* glsl */ `
-// Sun direction (world space). Keep in sync with SUN_DIRECTION in src/scene/water-optics.js.
-const vec3 SUN_DIR = normalize(vec3(0.25, 1.0, 0.35));
+// Sun direction (world space), from src/scene/sun.js.
+const vec3 SUN_DIR = ${SUN_GLSL};
 
 // How fast each color channel (red, green, blue) is lost per meter of water between you and an object.
 // Red goes first, then green, and blue survives longest. That's why distant coral turns blue-green.

@@ -39,6 +39,7 @@ export function createDiver(camera, input, { groundHeightAt, collide }) {
   let roll = 0;
   let kickPhase = 0;
   let time = 0;
+  let breath = 0;
 
   const forward = new THREE.Vector3();
   const right = new THREE.Vector3();
@@ -82,7 +83,7 @@ export function createDiver(camera, input, { groundHeightAt, collide }) {
     velocity.addScaledVector(push, pulse * (strong ? TUNING.strongKick : 1) * dt);
 
     // Neutral buoyancy: breathing lifts and lowers you slightly, and a slow current nudges you around.
-    const breath = Math.sin((time / TUNING.breathPeriod) * Math.PI * 2);
+    breath = Math.sin((time / TUNING.breathPeriod) * Math.PI * 2);
     velocity.y += breath * 0.07 * dt;
     velocity.x += Math.sin(time * 0.21) * 0.04 * dt;
     velocity.z += Math.cos(time * 0.17) * 0.04 * dt;
@@ -131,6 +132,10 @@ export function createDiver(camera, input, { groundHeightAt, collide }) {
     update,
     get depth() {
       return -position.y;
+    },
+    // -1..1 through each breath: above zero breathing in, below zero breathing out (bubbles!).
+    get breath() {
+      return breath;
     },
     get speed() {
       return velocity.length();

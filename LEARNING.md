@@ -273,3 +273,56 @@ time to ≥ 0. Real-time code is full of these edge cases at startup.
 In `src/creatures/fish-species.js`, find `chromis` and change `alignment: 1.6` to `alignment: 0` and reload.
 The school turns into a disorganized swarm: they still cluster (cohesion) but no longer swim together. Then try
 `cohesion: 0` with alignment back at 1.6: they swim in parallel but slowly drift apart.
+
+---
+
+## Milestone 5: Atmosphere (caustics, light shafts, marine snow, bubbles)
+
+### What was built
+- **Caustics** (`src/scene/caustics.js`): the shimmering net of sunlight on sand, rock, coral, fish, and turtle.
+  Strongest in the shallows, fading with depth.
+- **Light shafts** (`light-shafts.js`): soft beams slanting down from the surface, flickering slowly.
+- **Marine snow** (`marine-snow.js`): drifting specks that make the water feel like a substance.
+- **Bubbles** (`src/diver/bubbles.js`): a burst on every breath out, wobbling up past your mask and popping at the surface.
+- **The sun moved** ahead of the overview (toward the deep end), like the reference, so you look *into* the
+  light. It now lives in one file, `src/scene/sun.js`, and every effect reads it from there.
+
+### Key technique 1: fake it where nobody can tell
+None of these are physically simulated:
+```
+real thing                                   our fake
+─────────────────────────────────────────    ────────────────────────────────────────────
+waves focusing sunlight into caustics         borders between moving cells, projected along the sun
+light scattering in a water volume            glowing strips that turn to face you, drawn additively
+millions of drifting particles                a few thousand points in a 16 m box that wraps around you
+```
+The shafts and snow both use a **wrapping tile**: their positions are computed in the shader relative to the
+camera, so wherever you swim there are always some around you, and the CPU does nothing per shaft or speck.
+
+### Key technique 2: patching lighting into every material at once
+Caustics are extra sunlight, so they belong inside each material's lighting math. Instead of writing new materials,
+`installCaustics()` walks the whole scene and splices the same few lines into every lit material's shader,
+keeping any earlier patches (coral sway, fish wiggle) intact.
+
+### Key technique 3: bake what doesn't need to be live (a Low-preset story)
+On this PC's weak Intel chip, live caustics dropped Low from 60 to 43 fps in the overview: the pattern
+checked 9 grid cells for each of 2 layers, for *every pixel of every lit surface*. For Low, we now draw the pattern
+**once** into a small tiling image at load time, then read two copies sliding in different directions and combine them.
+That's 2 texture reads instead of 18 cell checks: back to 56 fps, and it honestly looks better. High keeps the live version.
+
+That's the most common performance trade in real-time graphics: **compute live → precompute into a texture**.
+
+### Key technique 4: object pools (bubbles)
+Bubbles come from a fixed pool of 60/140 that's reused. Creating and discarding objects constantly makes the browser
+pause now and then to clean up memory (**garbage collection**), which shows up as stutter.
+
+### Stack comparison
+- **Easier in Godot:** Godot 4 has built-in volumetric fog that makes real light shafts from the sun, plus a GPU
+  particle system with an editor. Here both are hand-written shaders.
+- **Same in both:** caustics. Neither engine has them built in. You'd project a texture or write a shader either way.
+- **Godot's GPUParticles3D** is the equivalent of our wrapping marine-snow box, with a visual editor for tuning.
+
+### Try it yourself
+In `src/scene/sun.js`, change the sun direction to `new THREE.Vector3(0.6, 1, 0.3)`, a lower sun off to the side.
+Reload and look at the shafts, the caustics stretching down rock walls, the shadows (on High), and the glare when you look up.
+Every effect follows, because they all read the same number.
