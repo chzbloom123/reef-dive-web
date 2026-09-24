@@ -55,3 +55,57 @@ Multiplying by `dt` is why motion looks the same at 30 fps and 144 fps: a slow m
 In `src/scene/hello-reef.js`, find `new THREE.FogExp2(WATER_COLOR, 0.055)`. Run `npm run dev`, open the link it
 prints, and change `0.055` to `0.02`, then to `0.12`, saving each time. Watch how far you can "see" through the water.
 This one number is most of what makes a scene read as underwater. Milestone 1 replaces it with a more physical version.
+
+---
+
+## Milestone 1: Swimming, water color, and menus
+
+### What was built
+- **The diver** (`src/diver/`): mouse look, swimming with momentum and water drag, fin-kick pulses, breathing
+  buoyancy, a surface you can reach but not leave, and soft invisible walls around the reef.
+- **Water optics** (`src/shaders/`, `src/scene/water-optics.js`): distance haze that eats red first, then green,
+  then blue, plus sunlight that dims and loses red the deeper something sits.
+- **Menus** (`src/ui/`): "Click to dive", and a pause menu with Resume, Low/High graphics, and mouse sensitivity.
+- **Test tank** (`src/scene/test-tank.js`): a stand-in sandy slope with blobs and three **color posts**
+  (red, orange, yellow, green, blue, white bands every meter) to show the water physics.
+
+### Key technique 1: push, don't set
+The diver never sets speed directly. Keys only *push* (acceleration), and water *drag* removes a fixed fraction of
+speed every second:
+```
+velocity += push × dt
+velocity × = e^(−drag × dt)       ← the glide
+position += velocity × dt
+```
+Top speed is where push and drag balance (push ÷ drag). This is the same first-order lag you'd see in a
+reactor-power or pump coast-down curve: an exponential approach to equilibrium with a time constant of 1/drag.
+
+### Key technique 2: the water is a shader
+A **shader** is a tiny program that runs on the graphics chip, once per corner of every shape (vertex shader) and
+once per pixel (fragment shader), all in parallel. Three.js builds every material's shader from snippets called
+**chunks**. We replaced the fog chunks with our own (`underwater-fog.js`), so every object in the scene gets water
+physics without touching its material:
+```
+for every pixel of every object:
+   color = lit surface color
+   color × = e^(−sunlightLoss × depth)            ← deeper = dimmer, less red
+   t     = e^(−viewLoss × distance)   (per channel: red fades fastest)
+   pixel = mix(waterColor(direction, yourDepth), color, t)
+```
+The background is a giant ball around the camera painted with the **same** `waterColor` function, so far objects
+dissolve into exactly the water behind them with no seam.
+
+Look at the color posts in the screenshots: the red band at the bottom (~10 m deep, 10+ m away) is nearly black,
+and yellow looks green. That's real: divers lose red first, which is why underwater photographers carry red filters.
+
+### Stack comparison
+- **Harder here:** Godot has an environment resource with volumetric fog you can turn on in the inspector.
+  Here we wrote the fog math ourselves. But we also get *exactly* the physics we want, including per-channel color loss,
+  which Godot's stock fog doesn't do either.
+- **Harder here:** "Click to dive" exists because browsers won't let a page capture the mouse without a click, and
+  Esc always releases it (so a web page can't trap you). A desktop Godot game can grab the mouse whenever it likes.
+- **Same:** the swim physics (push, drag, clamp) would be nearly identical code in Godot's `_physics_process`.
+
+### Try it yourself
+In `src/diver/diver-controller.js`, change `drag: 1.5` to `drag: 0.5`, save, and swim with `npm run dev`. You'll
+glide like you're on ice. Then try `drag: 4` for a thick, syrupy feel. Top speed changes too, because it's push ÷ drag.

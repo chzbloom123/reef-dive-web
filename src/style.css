@@ -32,32 +32,146 @@ body {
   pointer-events: none;
 }
 
-.overlay-title {
-  position: fixed;
-  top: 12vh;
-  width: 100%;
-  text-align: center;
-  pointer-events: none;
-  text-shadow: 0 2px 18px rgba(0, 40, 60, 0.7);
-}
-
-.overlay-title h1 {
-  margin: 0;
-  font-size: clamp(2rem, 6vw, 4.5rem);
-  font-weight: 300;
-  letter-spacing: 0.08em;
-}
-
-.overlay-title p {
-  margin: 0.4rem 0 0;
-  opacity: 0.75;
-  letter-spacing: 0.1em;
-}
-
 /* Capture mode hides every overlay so screenshots show only the scene. */
-body.capture .overlay-title,
+body.capture .screen,
 body.capture #fps {
   display: none;
+}
+
+/* ---- Menus: frosted glass panels floating over the water ---- */
+.screen {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: radial-gradient(ellipse at center, rgba(2, 30, 42, 0.25), rgba(2, 20, 30, 0.7));
+  z-index: 20;
+}
+
+.hidden {
+  display: none !important;
+}
+
+.panel {
+  width: min(420px, calc(100vw - 32px));
+  padding: 28px 32px;
+  border-radius: 18px;
+  background: rgba(6, 42, 56, 0.55);
+  border: 1px solid rgba(180, 240, 255, 0.18);
+  backdrop-filter: blur(10px);
+  box-shadow: 0 20px 60px rgba(0, 10, 20, 0.45);
+  text-align: center;
+}
+
+.panel h1 {
+  margin: 0;
+  font-size: 2.6rem;
+  font-weight: 300;
+  letter-spacing: 0.12em;
+}
+
+.panel h2 {
+  margin: 0 0 16px;
+  font-weight: 300;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  font-size: 1.1rem;
+}
+
+.tagline {
+  margin: 6px 0 22px;
+  opacity: 0.8;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+
+button.primary {
+  width: 100%;
+  padding: 12px 0;
+  border: 0;
+  border-radius: 999px;
+  background: linear-gradient(180deg, #6fe0ef, #2aa6c2);
+  color: #032a36;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  box-shadow: 0 4px 18px rgba(80, 220, 240, 0.35);
+}
+
+button.primary:hover {
+  filter: brightness(1.08);
+}
+
+.controls {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 4px 16px;
+  margin: 22px 0 0;
+  text-align: left;
+  font-size: 0.9rem;
+}
+
+.controls dt {
+  font-family: ui-monospace, Consolas, monospace;
+  color: #9eeefa;
+  text-align: right;
+}
+
+.controls dd {
+  margin: 0;
+  opacity: 0.85;
+}
+
+.fine-print {
+  margin: 10px 0 0;
+  font-size: 0.78rem;
+  opacity: 0.65;
+}
+
+.setting {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 20px;
+  text-align: left;
+}
+
+.setting-label {
+  flex: 1;
+}
+
+.segmented {
+  display: flex;
+  border: 1px solid rgba(180, 240, 255, 0.3);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.segmented button {
+  padding: 6px 18px;
+  border: 0;
+  background: transparent;
+}
+
+.segmented button.active {
+  background: #6fe0ef;
+  color: #032a36;
+  font-weight: 600;
+}
+
+#sensitivity {
+  width: 130px;
+  accent-color: #6fe0ef;
+}
+
+#sensitivity-value {
+  width: 3.2em;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
 }
 
 #fps {

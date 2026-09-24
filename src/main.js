@@ -1,9 +1,17 @@
 import * as THREE from 'three';
 import { readUrlOptions } from './url-options.js';
-import { PRESETS, loadSavedPresetName } from './presets.js';
+import { PRESETS, loadSavedPresetName, savePresetName } from './presets.js';
+import { loadSetting, saveSetting } from './storage.js';
+import { installUnderwaterFog } from './shaders/underwater-fog.js';
 import { createRenderer, handleResize } from './scene/renderer.js';
 import { applyViewpoint } from './scene/viewpoints.js';
-import { buildHelloReef } from './scene/hello-reef.js';
+import { createWaterBackdrop, createWaterLights } from './scene/water-optics.js';
+import { groundHeightAt } from './scene/terrain-height.js';
+import { buildTestTank } from './scene/test-tank.js';
+import { createInput } from './diver/input.js';
+import { createDiver } from './diver/diver-controller.js';
+import { createStartScreen } from './ui/start-screen.js';
+import { createPauseMenu } from './ui/pause-menu.js';
 import { createFpsCounter } from './ui/fps-counter.js';
 import { createCaptureSignal } from './capture-signal.js';
 
@@ -11,19 +19,71 @@ import { createCaptureSignal } from './capture-signal.js';
 //
 //   URL options ─┐
 //   saved preset ┴─> preset ─> renderer + scene ─> every frame: update → draw
+//
+// The game is always in one of four states:
+//   start ──click──> playing <──Esc / Resume──> paused        (capture: screenshot mode, no menus)
 
 const options = readUrlOptions();
-const preset = PRESETS[options.preset ?? loadSavedPresetName()];
+const presetName = options.preset ?? loadSavedPresetName();
+const preset = PRESETS[presetName];
+const settings = { sensitivity: loadSetting('sensitivity', 1) };
 
-const renderer = createRenderer(document.getElementById('scene'), preset);
+installUnderwaterFog(); // must run before the first frame compiles any shaders
+
+const canvas = document.getElementById('scene');
+const renderer = createRenderer(canvas, preset);
 const scene = new THREE.Scene();
 
-// 70° vertical field of view feels natural for a dive mask; the far limit matches the preset's haze.
-const camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.05, preset.viewDistance + 20);
+// 70° vertical field of view feels natural for a dive mask; the far limit is the preset's view distance.
+const camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.05, preset.viewDistance);
 handleResize(renderer, camera);
 
-const reef = buildHelloReef(scene);
+// Turning scene.fog on tells every material to include the fog chunks, which we replaced with water.
+// The color and distances here are unused; our water shader has its own physics.
+scene.fog = new THREE.Fog(0x000000, 1, 2);
+const backdrop = createWaterBackdrop(preset.viewDistance * 0.9);
+scene.add(backdrop.mesh, createWaterLights());
+buildTestTank(scene);
+
 applyViewpoint(camera, options.viewpoint ?? 'vp_overview');
+
+const input = createInput(canvas);
+const diver = createDiver(camera, input, { groundHeightAt });
+
+let state = options.capture ? 'capture' : 'start';
+
+const startScreen = createStartScreen({ presetLabel: preset.label, onDive: () => input.lock() });
+const pauseMenu = createPauseMenu({
+  presetName,
+  sensitivity: settings.sensitivity,
+  onResume: () => input.lock(),
+  onPresetChange(name) {
+    // Antialiasing is fixed when the renderer is created, so the simplest honest switch is a reload.
+    savePresetName(name);
+    const url = new URL(window.location.href);
+    url.searchParams.delete('preset'); // otherwise the address would override the saved choice
+    window.location.replace(url);
+  },
+  onSensitivityChange(value) {
+    settings.sensitivity = value;
+    saveSetting('sensitivity', value);
+  },
+});
+if (state === 'start') startScreen.show();
+
+input.onLockChange((locked) => {
+  if (locked) {
+    state = 'playing';
+    startScreen.hide();
+    pauseMenu.hide();
+  } else if (state === 'playing') {
+    state = 'paused';
+    pauseMenu.show();
+  }
+});
+input.onLockError(() => {
+  if (state === 'paused') pauseMenu.showResumeHint();
+});
 
 const fps = createFpsCounter(preset.label);
 const capture = createCaptureSignal(options.capture);
@@ -37,9 +97,14 @@ renderer.setAnimationLoop((timestamp) => {
   timer.update(timestamp);
   const dt = Math.min(timer.getDelta(), 0.1); // clamp so a stalled tab doesn't cause a huge jump
 
-  if (!options.viewpoint) reef.update(timer.getElapsed(), camera);
+  // On the start screen the diver drifts gently behind the menu; paused freezes everything.
+  if (state === 'playing' || state === 'start') {
+    diver.update(dt, { active: state === 'playing', sensitivity: settings.sensitivity });
+  }
+  backdrop.update(camera);
   renderer.render(scene, camera);
 
+  fps.setInfo(`depth ${diver.depth.toFixed(1)} m  ${diver.speed.toFixed(1)} m/s`);
   fps.update(dt);
   capture.update(dt);
 

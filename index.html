@@ -15,9 +15,50 @@
     <!-- Shown until the scene has drawn its first frame. -->
     <div id="loading">Descending…</div>
 
-    <div id="title" class="overlay-title">
-      <h1>hello, reef</h1>
-      <p>Milestone 0 · the shipping pipeline works</p>
+    <template id="controls-template">
+      <dl class="controls">
+        <dt>Mouse</dt><dd>Look around</dd>
+        <dt>W A S D</dt><dd>Swim</dd>
+        <dt>Space / C</dt><dd>Rise / sink</dd>
+        <dt>Shift</dt><dd>Strong fin kick</dd>
+        <dt>Esc</dt><dd>Pause and settings</dd>
+        <dt>F3</dt><dd>Frame-rate counter</dd>
+      </dl>
+    </template>
+
+    <div id="start-screen" class="screen hidden">
+      <div class="panel">
+        <h1>Reef Dive</h1>
+        <p class="tagline">A quiet swim over a sunlit coral reef.</p>
+        <button id="dive-button" class="primary">Click to dive</button>
+        <div class="controls-slot"></div>
+        <p class="fine-print">Graphics: <span class="preset-name"></span> · change it in the pause menu (Esc)</p>
+      </div>
+    </div>
+
+    <div id="pause-menu" class="screen hidden">
+      <div class="panel">
+        <h2>Paused</h2>
+        <button id="resume-button" class="primary">Resume</button>
+        <p id="resume-hint" class="fine-print hidden">The browser needs a moment after Esc. Click Resume again.</p>
+
+        <div class="setting">
+          <span class="setting-label">Graphics</span>
+          <div class="segmented" role="group" aria-label="Graphics preset">
+            <button data-preset="low">Low</button>
+            <button data-preset="high">High</button>
+          </div>
+        </div>
+        <p class="fine-print">Low suits integrated graphics; High needs a dedicated GPU. Switching reloads the scene.</p>
+
+        <label class="setting" for="sensitivity">
+          <span class="setting-label">Mouse sensitivity</span>
+          <input id="sensitivity" type="range" min="0.2" max="3" step="0.05" />
+          <output id="sensitivity-value"></output>
+        </label>
+
+        <div class="controls-slot"></div>
+      </div>
     </div>
 
     <!-- Vite reads this tag, follows every import from main.js, and bundles it all for the web. -->

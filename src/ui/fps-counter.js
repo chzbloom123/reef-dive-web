@@ -9,6 +9,7 @@ export function createFpsCounter(presetLabel) {
   let frames = 0;
   let elapsed = 0;
   let worstMs = 0;
+  let info = ''; // an extra line, e.g. depth and speed
 
   window.addEventListener('keydown', (event) => {
     if (event.code === 'F3') {
@@ -20,6 +21,9 @@ export function createFpsCounter(presetLabel) {
   el.textContent = `-- fps\n${presetLabel}`;
 
   return {
+    setInfo(text) {
+      info = text;
+    },
     // Called once per frame with the seconds since the previous frame.
     update(dt) {
       frames += 1;
@@ -28,7 +32,7 @@ export function createFpsCounter(presetLabel) {
       if (elapsed >= 0.5) {
         const fps = frames / elapsed;
         const avgMs = (elapsed / frames) * 1000;
-        el.textContent = `${fps.toFixed(0)} fps  ${avgMs.toFixed(1)} ms (worst ${worstMs.toFixed(0)})\n${presetLabel}`;
+        el.textContent = `${fps.toFixed(0)} fps  ${avgMs.toFixed(1)} ms (worst ${worstMs.toFixed(0)})\n${presetLabel}  ${info}`;
         frames = 0;
         elapsed = 0;
         worstMs = 0;
