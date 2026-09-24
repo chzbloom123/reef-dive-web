@@ -202,9 +202,27 @@ export function createRockField(preset) {
       return pushed;
     },
 
+    // A point on a rock's surface in a given direction from its center (in the rock's own space),
+    // plus which way the surface faces there. Used to grow coral on rocks.
+    sampleSurface(rock, dir, outPosition, outNormal) {
+      probe.copy(dir).normalize();
+      probe.multiplyScalar(rockRadius(rock, probe.x, probe.y, probe.z));
+      fromRockSpace(rock, probe, outPosition);
+      const f = field(rock, outPosition);
+      outNormal.set(
+        field(rock, probe.copy(outPosition).setX(outPosition.x + STEP)) - f,
+        field(rock, probe.copy(outPosition).setY(outPosition.y + STEP)) - f,
+        field(rock, probe.copy(outPosition).setZ(outPosition.z + STEP)) - f,
+      );
+      outNormal.normalize();
+      return outPosition;
+    },
+
     // Distance from a point to the nearest rock surface (meters, approximate). Used to shade the sand.
-    distanceTo(point) {
-      let best = Infinity;
+    // Rocks farther than 'limit' are skipped (the answer is then just "more than limit"), which keeps
+    // this fast enough to call thousands of times while placing coral and seagrass.
+    distanceTo(point, limit = 6) {
+      let best = limit;
       for (const rock of rocks) {
         if (point.distanceTo(rock.center) - rock.reach > best) continue;
         best = Math.min(best, rockDistance(rock, point));

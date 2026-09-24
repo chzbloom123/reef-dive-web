@@ -10,6 +10,8 @@ import { groundHeightAt } from './scene/terrain-height.js';
 import { createRockField } from './scene/rock-field.js';
 import { createSeabed } from './scene/seabed.js';
 import { createWaterSurface } from './scene/water-surface.js';
+import { createReefLife } from './scene/coral/reef-life.js';
+import { reefTime } from './scene/coral/coral-material.js';
 import { createInput } from './diver/input.js';
 import { createDiver } from './diver/diver-controller.js';
 import { createStartScreen } from './ui/start-screen.js';
@@ -47,14 +49,16 @@ const backdrop = createWaterBackdrop(preset.viewDistance * 0.9);
 const surface = createWaterSurface(preset.viewDistance);
 const rockField = createRockField(preset);
 const seabed = createSeabed(preset, rockField, preset.name === 'high' ? renderer.capabilities.getMaxAnisotropy() : 1);
-scene.add(backdrop.mesh, surface.mesh, createWaterLights(preset), rockField.group, seabed);
+const reefLife = createReefLife(preset, rockField);
+scene.add(backdrop.mesh, surface.mesh, createWaterLights(preset), rockField.group, seabed, reefLife.group);
 
 applyViewpoint(camera, options.customCamera ?? options.viewpoint ?? 'vp_overview');
 
 const input = createInput(canvas);
 const diver = createDiver(camera, input, {
   groundHeightAt,
-  collide: (position, radius) => rockField.collide(position, radius),
+  // Check rock and coral separately; '|' (not '||') so both always run even if the first one pushed.
+  collide: (position, radius) => rockField.collide(position, radius) | reefLife.collide(position, radius),
 });
 
 let state = options.capture ? 'capture' : 'start';
@@ -110,6 +114,7 @@ renderer.setAnimationLoop((timestamp) => {
   }
   backdrop.update(camera);
   surface.update(timer.getElapsed(), camera);
+  reefTime.value = timer.getElapsed();
   renderer.render(scene, camera);
 
   fps.setInfo(`depth ${diver.depth.toFixed(1)} m  ${diver.speed.toFixed(1)} m/s`);

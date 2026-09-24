@@ -15,8 +15,8 @@ export const VIEWPOINTS = {
     target: [0, -9.5, -6],
   },
   vp_coral_closeup: {
-    position: [3.0, -9.2, 3.6],
-    target: [5, -10.4, 0.5],
+    position: [-1.5, -6.3, 15.1], // a coral-covered ledge at the shallow end
+    target: [-3.3, -7.5, 12.6],
   },
   vp_looking_up: {
     position: [0, -9, -2],

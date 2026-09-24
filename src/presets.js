@@ -14,7 +14,7 @@ export const PRESETS = {
     shadows: false,
     shadowMapSize: 0,
     coralDensity: 0.5, // fraction of the full coral scatter
-    seagrassCount: 1500,
+    seagrassCount: 2500,
     fishCount: 90,
     particleCount: 600,
     bloom: false, // post-processing glow

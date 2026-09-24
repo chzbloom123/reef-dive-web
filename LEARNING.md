@@ -164,3 +164,55 @@ cut load time from about 3.5 s to under 1 s: every rock starts from the same sph
 In `src/scene/rock-field.js`, change `createRandom(5)` to `createRandom(6)` and reload. All the boulders and
 distant towers move to new random spots (the six main pinnacles are hand-placed, so they stay put). Then in
 `rock-shapes.js`, change the `0.3` in `1 + 0.3 * fbm(` to `0.6` for wilder, lumpier rocks.
+
+---
+
+## Milestone 3: Coral, anemones, and seagrass
+
+### What was built
+Everything alive and attached, in `src/scene/coral/`:
+- **Brain coral**: lumpy domes with meandering grooves (single, wide, and twin-domed varieties).
+- **Branching coral**: staghorn antlers and bushy finger clumps, grown by a recursive branching rule.
+- **Table and plate coral**: tables on stalks on flat rock; wavy plates jutting out of rock walls as shelves.
+- **Tube sponges**: clusters of hollow tubes with dark openings.
+- **Anemones**: fleshy columns with curling tentacles that sway.
+- **Seagrass meadows**: up to 6,000 swaying blades.
+- About 540 corals in total, and you bump into them (except anemones and grass, which are soft).
+
+### Key technique 1: instancing (why 7,000 living things run on integrated graphics)
+Each draw call (the CPU telling the GPU "draw this object") has a fixed overhead, so 7,000 separate objects
+would choke even a strong machine. Instead, each *variety* is one shape uploaded once, plus a list of
+placements and colors:
+```
+one staghorn shape  +  [ (position, rotation, size, color) × 130 ]  →  1 draw call
+one seagrass blade  +  [ (position, rotation, size, color) × 6000 ] →  1 draw call
+```
+The whole reef's life is **18 draw calls**. Variety comes from mixing 3–4 shapes per species with random
+size, spin, tilt, and color, so no two corals look alike.
+
+### Key technique 2: let the shader do the fine detail
+- **Brain coral grooves** aren't geometry. The shader computes a smooth noise field for each pixel and draws its
+  *contour lines*, which meander exactly like brain coral valleys. Carving them into triangles would need about 50× the geometry.
+  Far away, where grooves would be finer than a pixel and flicker, they fade to an even color.
+- **Swaying** happens on the GPU: each blade vertex stores a "sway weight" (0 at the root, 1 at the tip), and the
+  vertex shader pushes it sideways by `sin(time + position)`. The CPU does nothing per blade per frame.
+
+### Key technique 3: same reef on both presets
+Every coral is placed on both presets, so the random sequence (and therefore the reef) is identical. Low
+then draws a fixed half of them. Your Low screenshots are a true subset of Brie's High ones, not a different reef.
+
+### Key technique 4 (High only): fake translucency
+Real coral tissue is thin and lets light through. A cheap trick imitates it: surfaces seen edge-on get a soft glow in
+their own color ("rim light"). It's one line of shader math instead of real light-through-material simulation.
+
+### Stack comparison
+- **Same idea, different buttons:** Godot has `MultiMeshInstance3D`, the same thing as instancing, plus a
+  scatter tool in the editor. Here, placement is our own code (on rock faces, near rocks, in gardens), which is
+  more work but lets us encode reef ecology rules directly.
+- **Harder here:** the shader edits (grooves, sway, glow) are spliced into three.js's built-in shaders by string
+  replacement. Godot's visual shader editor or `shader_type spatial` makes that cleaner.
+
+### Try it yourself
+In `src/scene/coral/reef-life.js`, change `branching: 260` in `BASE_COUNTS` to `branching: 600` and reload.
+Watch the F3 counter: frame rate barely moves, because it's still one draw call per variety, just longer lists.
+Then in `coral-material.js`, change `field * 15.0` to `field * 6.0` for fat, lazy brain-coral grooves.
