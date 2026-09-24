@@ -54,7 +54,8 @@ Multiplying by `dt` is why motion looks the same at 30 fps and 144 fps: a slow m
 ### Try it yourself
 In `src/scene/hello-reef.js`, find `new THREE.FogExp2(WATER_COLOR, 0.055)`. Run `npm run dev`, open the link it
 prints, and change `0.055` to `0.02`, then to `0.12`, saving each time. Watch how far you can "see" through the water.
-This one number is most of what makes a scene read as underwater. Milestone 1 replaces it with a more physical version.
+This one number is most of what makes a scene read as underwater. *(That file was replaced in Milestone 1 by a more
+physical water model. See the Milestone 1 entry for its version of this experiment.)*
 
 ---
 
